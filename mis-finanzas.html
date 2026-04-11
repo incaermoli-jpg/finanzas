@@ -172,6 +172,20 @@ body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM
 .badge.ok { background: var(--green-bg); color: var(--green); }
 .badge.danger { background: var(--red-bg); color: var(--red); }
 
+.btn-export {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: transparent;
+  font-size: 14px;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+.btn-export:active { background: var(--bg2); }
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 </style>
@@ -212,6 +226,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
     <div id="cats-resumen"></div>
     <div class="sec-title">Movimientos</div>
     <div id="lista-movs"></div>
+    <button class="btn-export" onclick="exportarMes()">📋 Guardar resumen del mes</button>
   </div>
 </div>
 
@@ -626,6 +641,47 @@ function toast(msg) {
   t.classList.add('show');
   clearTimeout(t._t);
   t._t = setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+
+// ── EXPORTAR ──
+function exportarMes() {
+  const movs = movsDelMes();
+  const {ing, fijos, vars, total} = calcTotales(movs);
+  const libre = ing - total;
+  const mes = mesLabel(mesActual);
+  const nl = '\n';
+  let txt = '📊 ' + mes + nl;
+  txt += '━━━━━━━━━━━━━━━━━━' + nl;
+  txt += '💰 Ingresos:    ' + fmt(ing) + nl;
+  txt += '📋 Fijos:       ' + fmt(fijos) + nl;
+  txt += '💸 Variables:   ' + fmt(vars) + nl;
+  txt += '✅ Saldo libre: ' + fmt(libre) + nl;
+  txt += '━━━━━━━━━━━━━━━━━━' + nl;
+  const ingresos = movs.filter(function(m){return m.tipo==='ingreso';});
+  const gastos = movs.filter(function(m){return m.tipo!=='ingreso';});
+  if(ingresos.length) {
+    txt += nl + 'INGRESOS' + nl;
+    ingresos.forEach(function(m){ txt += '+ ' + fmt(m.monto) + ' ' + (m.desc||m.cat) + nl; });
+  }
+  if(gastos.length) {
+    txt += nl + 'GASTOS' + nl;
+    gastos.forEach(function(m){ txt += '- ' + fmt(m.monto) + ' ' + (m.desc||m.cat) + nl; });
+  }
+  txt += nl + 'Guardado desde Mis Finanzas';
+  if(navigator.share) {
+    navigator.share({ title: 'Finanzas ' + mes, text: txt });
+  } else if(navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(function(){ toast('✓ Copiado al portapapeles'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('✓ Copiado');
+  }
 }
 
 // ── INIT ──
